@@ -62,19 +62,17 @@ def extract_invoice_data(pdf_path):
 def moveToServer(pdf_path,remote_path):
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None  # ignore host key checking
-
     sftp = pysftp.Connection(remote_server, username=remote_username, password=remote_password, cnopts=cnopts)
     sftp.put(pdf_path, remote_path)
-
     sftp.close()
-
-
 
 if __name__ == '__main__':
 
     pdf_path = False
-    if len(sys.argv) == 2:
-        pdf_path = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('pdf_path', nargs='?', default=None)
+    args = parser.parse_args()
+    pdf_path = args.pdf_path
 
     if not pdf_path:
         sys.exit("Es wurde keine PDF-Datei ausgewählt.")
