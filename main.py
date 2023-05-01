@@ -1,7 +1,7 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 import PyPDF2
 import re
 import argparse
@@ -18,7 +18,7 @@ remote_path_1 = '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/2_Rechnun
 remote_path_2 = '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/3_Rechnungen_abgeschloßen/'
 remote_server = 'VMTATEX'
 remote_username = "fabi"
-remote_password = "/85fabI-19!"
+remote_password = "?"
 
 def extract_text_from_pdf(pdf_path):
     with open(pdf_path, 'rb') as pdf_file:
@@ -71,11 +71,10 @@ def moveToServer(pdf_path,remote_path):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Extract invoice data from a PDF file.')
-    parser.add_argument('pdf_path', type=str, help='path to the PDF file')
-    args = parser.parse_args()
 
-    pdf_path = args.pdf_path
+    pdf_path = False
+    if len(sys.argv) == 2:
+        pdf_path = sys.argv[1]
 
     if not pdf_path:
         sys.exit("Es wurde keine PDF-Datei ausgewählt.")
@@ -92,12 +91,15 @@ if __name__ == '__main__':
         messagebox.showinfo("Rechnungsdaten", message)
         new_file_name = f"{invoice_date}_{invoice_number}.pdf"
 
-        rename_file = messagebox.askyesno("Umbenennen?", "Möchten Sie die Datei in "+new_file_name+" umbenennen?")
+        rename_file = messagebox.askyesno("Umbenennen?", "Möchten Sie die Datei "+pdf_path+" umbenennen?")
         if rename_file:
+            new_file_name = simpledialog.askstring(title = "Dateiname", prompt = "Neuen Namen anpassen.\t\t\t", initialvalue=new_file_name)
             os.rename(pdf_path, new_file_name)
-            messagebox.showinfo("Erfolgreich","Erfolgreich umbenannt in "+new_file_name)
+        else:
+            new_file_name = pdf_path
 
-        move_file = messagebox.askyesno("Verschieben?", "Möchten Sie die Datei "+pdf_path+" auf den Server verschieben?")
+
+        move_file = messagebox.askyesno("Verschieben?", "Möchten Sie die Datei "+new_file_name+" auf den Server verschieben?")
 
 
         if move_file:
@@ -109,7 +111,7 @@ if __name__ == '__main__':
                 remote_path = remote_path_1
             else:
                 remote_path = remote_path_2
-            moveToServer(new_file_name,remote_path+pdf_path)
+            moveToServer(new_file_name,remote_path+new_file_name)
             messagebox.showinfo("Erfolgreich","Erfolgreich hochgeladen")
         root.destroy()
 
