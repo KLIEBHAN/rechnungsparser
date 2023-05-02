@@ -1,7 +1,6 @@
 import os
 import sys
 import re
-import pdftotext
 import argparse
 from datetime import datetime
 
@@ -9,6 +8,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 from dateutil import parser as date_parser
 from contextlib import contextmanager
+import PyPDF2
 
 import pysftp
 
@@ -27,12 +27,13 @@ REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
 REMOTE_PASSWORD = "?"
 
+
 # Functions
 def extract_text_from_pdf(pdf_path):
     """Extrahiert den Text aus einer PDF-Datei."""
     with open(pdf_path, 'rb') as pdf_file:
-        pdf_reader = pdftotext.PDF(pdf_file)
-        text = ''.join(page for page in pdf_reader)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        text = ''.join([pdf_reader.pages[i].extract_text() for i in range(len(pdf_reader.pages))])
     return text
 
 
@@ -70,13 +71,35 @@ def choose_remote_path():
     result = messagebox.askquestion("Pfad", question_text, type='yesno', default='yes')
     return REMOTE_PATHS['path_1'] if result == 'yes' else REMOTE_PATHS['path_2']
 
+
+def show_info(titel, message):
+    """Erstellen einer benutzerdefinierten Dialogbox"""
+    def close_dialog():
+        custom_dialog.destroy()
+    custom_dialog = tk.Toplevel()
+    custom_dialog.title(titel)
+
+    
+    # Setzen Sie die Größe des Fensters
+    custom_dialog.geometry("300x200")
+
+    text_widget = tk.Text(custom_dialog, wrap=tk.WORD, padx=3, pady=3)
+    text_widget.insert(tk.END, message)
+    text_widget.configure(state='disabled')
+    text_widget.pack(expand=True, fill=tk.BOTH)
+
+    ok_button = tk.Button(custom_dialog, text="OK", command=close_dialog)
+    ok_button.pack(pady=(0, 3))
+
+    custom_dialog.wait_window()
+
 def show_invoice_data(invoice_data):
     """Zeigt die extrahierten Rechnungsdaten an."""
     invoice_date_german = invoice_data['date'].strftime('%d.%m.%Y')
     message = f'''{invoice_date_german}\n
-                  {invoice_data['invoice_number']}\n
-                  {invoice_data['amount']}'''
-    messagebox.showinfo("Rechnungsdaten", message)
+{invoice_data['invoice_number']}\n
+{invoice_data['amount']}'''
+    show_info("Rechnungsdaten",message)
 
 def rename_and_move_file(pdf_path, new_file_name):
     """Benennt die Datei um und verschiebt sie."""
