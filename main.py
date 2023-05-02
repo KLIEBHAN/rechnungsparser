@@ -14,7 +14,7 @@ import pysftp
 
 
 # Constants
-PATTERNS = {
+INVOICE_PATTERNS = {
     'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}\s+\w+\s+\d{2,4}))',
     'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.?)\s*([A-Za-z0-9\-_]+)',
     'amount': r'(?:Zahlbetrag|Gesamtbetrag|Total)\s*([\d,.]+)\s*(?:€|EUR)?',
@@ -25,7 +25,7 @@ REMOTE_PATHS = {
 }
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
-REMOTE_PASSWORD = "/85fabI-19!"
+REMOTE_PASSWORD = "?"
 
 # Functions
 def extract_text_from_pdf(pdf_path):
@@ -38,7 +38,7 @@ def extract_text_from_pdf(pdf_path):
 
 def extract_invoice_data(text):
     """Extrahiert Rechnungsdaten aus dem Text."""
-    return {key: re.search(pattern, text, re.IGNORECASE).group(1) for key, pattern in PATTERNS.items()}
+    return {key: re.search(pattern, text, re.IGNORECASE).group(1) for key, pattern in INVOICE_PATTERNS.items()}
 
 def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
@@ -51,29 +51,31 @@ def parse_date(date_str):
 
 @contextmanager
 def sftp_connection(server, username, password):
+    """Öffnet eine SFTP-Verbindung."""
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None
     with pysftp.Connection(server, username=username, password=password, cnopts=cnopts) as sftp:
         yield sftp
 
 def moveToServer(pdf_path, remote_path):
+    """Lädt PDF-Datei auf den Server."""
     with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
 
 def choose_remote_path():
     """Lässt den Benutzer den Remotepfad auswählen."""
-    question_text = (f"Welcher Remotepfad soll verwendet werden?\n"
-                 f"Yes -> {REMOTE_PATHS['path_1']}\n"
-                 f"No -> {REMOTE_PATHS['path_2']}")
+    question_text = f'''Welcher Remotepfad soll verwendet werden?
+                       Yes -> {REMOTE_PATHS['path_1']}
+                       No -> {REMOTE_PATHS['path_2']}'''
     result = messagebox.askquestion("Pfad", question_text, type='yesno', default='yes')
     return REMOTE_PATHS['path_1'] if result == 'yes' else REMOTE_PATHS['path_2']
 
 def show_invoice_data(invoice_data):
     """Zeigt die extrahierten Rechnungsdaten an."""
     invoice_date_german = invoice_data['date'].strftime('%d.%m.%Y')
-    message = (f"{invoice_date_german}\n"
-               f"{invoice_data['invoice_number']}\n"
-               f"{invoice_data['amount']}")
+    message = f'''{invoice_date_german}\n
+                  {invoice_data['invoice_number']}\n
+                  {invoice_data['amount']}'''
     messagebox.showinfo("Rechnungsdaten", message)
 
 def rename_and_move_file(pdf_path, new_file_name):
