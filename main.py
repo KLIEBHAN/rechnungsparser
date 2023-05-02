@@ -1,13 +1,13 @@
 import os
 import sys
 import re
+import pdftotext
 import argparse
 from datetime import datetime
 
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 
-import PyPDF2
 import pysftp
 
 
@@ -30,8 +30,8 @@ REMOTE_PASSWORD = "?"
 def extract_text_from_pdf(pdf_path):
     """Extrahiert den Text aus einer PDF-Datei."""
     with open(pdf_path, 'rb') as pdf_file:
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        text = ''.join(page.extract_text() for page in pdf_reader.pages)
+        pdf_reader = pdftotext.PDF(pdf_file)
+        text = ''.join(page for page in pdf_reader)
     return text
 
 def extract_invoice_data(text):
