@@ -12,6 +12,7 @@ import pysftp
 
 
 # Constants
+DATE_FORMATS = ['%d.%m.%Y', '%d-%m-%Y', '%d %B %Y']
 PATTERNS = {
     'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}\s+\w+\s+\d{2,4}))',
     'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.?)\s*([A-Za-z0-9\-_]+)',
@@ -39,9 +40,7 @@ def extract_invoice_data(text):
 
 def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
-    date_formats = ['%d.%m.%Y', '%d-%m-%Y', '%d %B %Y']
-
-    for date_format in date_formats:
+    for date_format in DATE_FORMATS:
         try:
             return datetime.strptime(date_str, date_format).date()
         except ValueError:
