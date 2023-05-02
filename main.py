@@ -8,6 +8,7 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 from dateutil import parser as date_parser
+from contextlib import contextmanager
 
 import pysftp
 
@@ -24,7 +25,7 @@ REMOTE_PATHS = {
 }
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
-REMOTE_PASSWORD = "?"
+REMOTE_PASSWORD = "/85fabI-19!"
 
 # Functions
 def extract_text_from_pdf(pdf_path):
@@ -48,12 +49,15 @@ def parse_date(date_str):
     return parsed_date
 
 
+@contextmanager
+def sftp_connection(server, username, password):
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None
+    with pysftp.Connection(server, username=username, password=password, cnopts=cnopts) as sftp:
+        yield sftp
 
 def moveToServer(pdf_path, remote_path):
-    """Verschiebt eine Datei auf den Server."""
-    cnopts = pysftp.CnOpts()
-    cnopts.hostkeys = None  # ignore host key checking
-    with pysftp.Connection(REMOTE_SERVER, username=REMOTE_USERNAME, password=REMOTE_PASSWORD, cnopts=cnopts) as sftp:
+    with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
 
 def choose_remote_path():
