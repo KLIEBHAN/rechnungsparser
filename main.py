@@ -7,12 +7,12 @@ from datetime import datetime
 
 import tkinter as tk
 from tkinter import messagebox, simpledialog
+from dateutil import parser as date_parser
 
 import pysftp
 
 
 # Constants
-DATE_FORMATS = ['%d.%m.%Y', '%d-%m-%Y', '%d %B %Y']
 PATTERNS = {
     'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}\s+\w+\s+\d{2,4}))',
     'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.?)\s*([A-Za-z0-9\-_]+)',
@@ -34,19 +34,18 @@ def extract_text_from_pdf(pdf_path):
         text = ''.join(page for page in pdf_reader)
     return text
 
+
 def extract_invoice_data(text):
     """Extrahiert Rechnungsdaten aus dem Text."""
     return {key: re.search(pattern, text, re.IGNORECASE).group(1) for key, pattern in PATTERNS.items()}
 
 def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
-    for date_format in DATE_FORMATS:
-        try:
-            return datetime.strptime(date_str, date_format).date()
-        except ValueError:
-            pass
-
-    raise ValueError("Rechnungsdatum nicht gefunden.")
+    try:
+        parsed_date = date_parser.parse(date_str, dayfirst=True).date()
+    except (ValueError, TypeError):
+        raise ValueError("Rechnungsdatum nicht gefunden.")
+    return parsed_date
 
 
 
