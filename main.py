@@ -16,8 +16,8 @@ import pysftp
 # Constants
 INVOICE_PATTERNS = {
     'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}\s+\w+\s+\d{2,4}))',
-    'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.?)\s*([A-Za-z0-9\-_]+)',
-    'amount': r'(?:Zahlbetrag|Gesamtbetrag|Total)\s*([\d,.]+)\s*(?:€|EUR)?',
+    'invoice_number': r'(?:Rechnung|Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.?)\s*([A-Za-z0-9\-_]+)',
+    'amount': r'(?:Zahlbetrag|Gesamtbetrag|Total|Rechnungsbetrag)\s*([\d,.]+)\s*(?:€|EUR)?',
 }
 REMOTE_PATHS = {
     'path_1': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/2_Rechnungen_gebucht/',
@@ -39,7 +39,14 @@ def extract_text_from_pdf(pdf_path):
 
 def extract_invoice_data(text):
     """Extrahiert Rechnungsdaten aus dem Text."""
-    return {key: re.search(pattern, text, re.IGNORECASE).group(1) for key, pattern in INVOICE_PATTERNS.items()}
+    invoice_data = {}
+    for key, pattern in INVOICE_PATTERNS.items():
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            invoice_data[key] = match.group(1)
+        else:
+            raise ValueError(f"{key} nicht gefunden.")
+    return invoice_data
 
 def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
@@ -79,7 +86,7 @@ def show_info(titel, message):
     custom_dialog = tk.Toplevel()
     custom_dialog.title(titel)
 
-    
+
     # Setzen Sie die Größe des Fensters
     custom_dialog.geometry("300x200")
 
@@ -98,7 +105,8 @@ def show_invoice_data(invoice_data):
     invoice_date_german = invoice_data['date'].strftime('%d.%m.%Y')
     message = f'''{invoice_date_german}\n
 {invoice_data['invoice_number']}\n
-{invoice_data['amount']}'''
+{invoice_data['amount']}\n\n\n
+{invoice_data['text']}'''
     show_info("Rechnungsdaten",message)
 
 def rename_and_move_file(pdf_path, new_file_name):
@@ -124,6 +132,7 @@ def main(pdf_path):
         text = extract_text_from_pdf(pdf_path)
         invoice_data = extract_invoice_data(text)
         invoice_data['date'] = parse_date(invoice_data['date'])
+        invoice_data['text'] = text
         show_invoice_data(invoice_data)
         invoice_date = invoice_data['date'].strftime('%Y_%m_%d')
         invoice_number = invoice_data['invoice_number']
