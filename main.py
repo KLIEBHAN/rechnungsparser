@@ -6,7 +6,7 @@ from datetime import datetime
 
 import tkinter as tk
 from tkinter import messagebox, simpledialog
-from dateutil import parser as date_parser
+import dateparser
 from contextlib import contextmanager
 import PyPDF2
 
@@ -15,8 +15,8 @@ import pysftp
 
 # Constants
 INVOICE_PATTERNS = {
-    'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}\s+\w+\s+\d{2,4}))',
-    'invoice_number': r'(?:Rechnung|Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.?)\s*([A-Za-z0-9\-_]+)',
+    'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}[.]?\s+\w+\s+\d{2,4}))',
+    'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.)\s*([A-Za-z0-9\-_]+)',
     'amount': r'(?:Zahlbetrag|Gesamtbetrag|Total|Rechnungsbetrag)\s*([\d,.]+)\s*(?:€|EUR)?',
 }
 REMOTE_PATHS = {
@@ -41,7 +41,7 @@ def extract_invoice_data(text):
     """Extrahiert Rechnungsdaten aus dem Text."""
     invoice_data = {}
     for key, pattern in INVOICE_PATTERNS.items():
-        match = re.search(pattern, text, re.IGNORECASE)
+        match = re.search(pattern, text)
         if match:
             invoice_data[key] = match.group(1)
         else:
@@ -50,11 +50,12 @@ def extract_invoice_data(text):
 
 def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
+    print(date_str)
     try:
-        parsed_date = date_parser.parse(date_str, dayfirst=True).date()
-    except (ValueError, TypeError):
-        raise ValueError("Rechnungsdatum nicht gefunden.")
-    return parsed_date
+        parsed_date = dateparser.parse(date_str)
+    except (ValueError):
+        raise ValueError("Rechnungsdatum kann nicht geparst werden.")
+    return parsed_date.date()
 
 
 @contextmanager
