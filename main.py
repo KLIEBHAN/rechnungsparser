@@ -69,6 +69,7 @@ def moveToServer(pdf_path, remote_path):
     """Lädt PDF-Datei auf den Server."""
     with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
+
 def choose_remote_path():
     """Lässt den Benutzer den Remotepfad auswählen."""
     chosen_path = tk.StringVar()  # Neue StringVar Variable
@@ -93,12 +94,6 @@ def choose_remote_path():
         command=lambda: set_path(REMOTE_PATHS['path_2']))
     path_2_button.pack(pady=(0, 3))
 
-    quit_button = tk.Button(
-        path_dialog,
-        text="Beenden",
-        command=path_dialog.destroy)
-    quit_button.pack(pady=(0, 3))
-
     path_dialog.wait_window()
 
     while not chosen_path.get():
@@ -107,6 +102,36 @@ def choose_remote_path():
     return chosen_path.get()  # Rückgabe des Wertes der chosen_path Variable
 
 
+def choose_rechnungstype(betreff,typ1, typ2):
+    """Lässt den Benutzer den Remotepfad auswählen."""
+    chosen_type = tk.StringVar()  # Neue StringVar Variable
+
+    def set_type(type):
+        """Setzt den Wert der chosen_type-Variable."""
+        chosen_type.set(type)
+        path_dialog.destroy()
+
+    path_dialog = tk.Toplevel()
+    path_dialog.title(betreff)
+
+    path_1_button = tk.Button(
+        path_dialog,
+        text=typ1,
+        command=lambda: set_type(typ1))
+    path_1_button.pack(pady=(0, 3))
+
+    path_2_button = tk.Button(
+        path_dialog,
+        text=typ2,
+        command=lambda: set_type(typ2))
+    path_2_button.pack(pady=(0, 3))
+
+    path_dialog.wait_window()
+
+    while not chosen_type.get():
+        path_dialog.wait_window()
+
+    return chosen_type.get()  # Rückgabe des Wertes der chosen_type Variable
 
 def show_info(titel, message):
     """Erstellen einer benutzerdefinierten Dialogbox"""
@@ -167,15 +192,33 @@ def move_file():
     moveToServer(new_file_name, remote_path + new_file_name)
     messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
-def post_invoice_data(invoice_data,datum,rechnungstyp,konto1,konto2):
+def post_invoice_data(invoice_data,datum,hinbuchung):
     global betreff
     """Sendet die Rechnungsdaten an einen Server."""
+
+    rechnungstyp = choose_rechnungstype(
+        "Rechnungstyp auswählen",
+        "Amazon Betriebsbedarf",
+        "Amazon Bürobedarf")
+
+    if hinbuchung:
+        if(rechnungstyp == "Amazon Betriebsbedarf"):
+            konto1 = "4980"
+        else:
+            konto1 = "4980"
+        konto2 = "90000"
+    else:
+        konto1 = "90000"
+        konto2 = "1200"
+
+
     data_to_post ={
         "date": datum.strftime('%d.%m.%Y'),
         "rechnungstext": rechnungstyp + f" RN {invoice_data['invoice_number']} {betreff}",
         "betrag": invoice_data['amount'],
         "konto1": konto1,
-        "konto2": konto2}
+        "konto2": konto2
+    }
 
     response = httpx.post(REMOTE_HTTP_URL, json=data_to_post)
 
@@ -220,14 +263,14 @@ def choose_action(pdf_path, invoice_data):
     post_data_button = tk.Button(
         action_dialog,
         text="Rechnungsdaten senden - Hinbuchung",
-        command=lambda: post_invoice_data(invoice_data, invoice_data['date'], "Amazon Betriebsbedarf", "4980", "90000"))
+        command=lambda: post_invoice_data(invoice_data, invoice_data['date'], 1))
     post_data_button.pack(pady=(0, 3))
 
 
     post_data_button = tk.Button(
         action_dialog,
         text="Rechnungsdaten senden - Rückbuchung",
-        command=lambda: post_invoice_data(invoice_data, date.today(), "Amazon Betriebsbedarf", "90000", "1200"))
+        command=lambda: post_invoice_data(invoice_data, date.today(), 0))
     post_data_button.pack(pady=(0, 3))
 
     quit_button = tk.Button(
