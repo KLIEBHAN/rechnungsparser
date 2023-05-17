@@ -70,68 +70,36 @@ def moveToServer(pdf_path, remote_path):
     with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
 
-def choose_remote_path():
-    """Lässt den Benutzer den Remotepfad auswählen."""
-    chosen_path = tk.StringVar()  # Neue StringVar Variable
 
-    def set_path(path):
-        """Setzt den Wert der chosen_path-Variable."""
-        chosen_path.set(path)
+
+def choose_between_two_options(text, option1, option2):
+    chosen_option = tk.StringVar()  # Neue StringVar Variable
+
+    def set_option(option):
+        chosen_option.set(option)
         path_dialog.destroy()
 
     path_dialog = tk.Toplevel()
-    path_dialog.title("Remotepfad auswählen")
+    path_dialog.title(text)
 
     path_1_button = tk.Button(
         path_dialog,
-        text=REMOTE_PATHS['path_1'],
-        command=lambda: set_path(REMOTE_PATHS['path_1']))
+        text=option1,
+        command=lambda: set_option(option1))
     path_1_button.pack(pady=(0, 3))
 
     path_2_button = tk.Button(
         path_dialog,
-        text=REMOTE_PATHS['path_2'],
-        command=lambda: set_path(REMOTE_PATHS['path_2']))
+        text=option2,
+        command=lambda: set_option(option2))
     path_2_button.pack(pady=(0, 3))
 
     path_dialog.wait_window()
 
-    while not chosen_path.get():
+    while not chosen_option.get():
         path_dialog.wait_window()
 
-    return chosen_path.get()  # Rückgabe des Wertes der chosen_path Variable
-
-
-def choose_rechnungstype(betreff,typ1, typ2):
-    """Lässt den Benutzer den Remotepfad auswählen."""
-    chosen_type = tk.StringVar()  # Neue StringVar Variable
-
-    def set_type(type):
-        """Setzt den Wert der chosen_type-Variable."""
-        chosen_type.set(type)
-        path_dialog.destroy()
-
-    path_dialog = tk.Toplevel()
-    path_dialog.title(betreff)
-
-    path_1_button = tk.Button(
-        path_dialog,
-        text=typ1,
-        command=lambda: set_type(typ1))
-    path_1_button.pack(pady=(0, 3))
-
-    path_2_button = tk.Button(
-        path_dialog,
-        text=typ2,
-        command=lambda: set_type(typ2))
-    path_2_button.pack(pady=(0, 3))
-
-    path_dialog.wait_window()
-
-    while not chosen_type.get():
-        path_dialog.wait_window()
-
-    return chosen_type.get()  # Rückgabe des Wertes der chosen_type Variable
+    return chosen_option.get()  # Rückgabe des Wertes der chosen_type Variable
 
 def show_info(titel, message):
     """Erstellen einer benutzerdefinierten Dialogbox"""
@@ -188,7 +156,10 @@ def rename_file(pdf_path,invoice_data):
 
 
 def move_file():
-    remote_path = choose_remote_path()
+    remote_path = choose_between_two_options("Remotepfad auswählen",
+                                             REMOTE_PATHS['path_1'],
+                                             REMOTE_PATHS['path_2'])
+
     moveToServer(new_file_name, remote_path + new_file_name)
     messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
@@ -196,7 +167,7 @@ def post_invoice_data(invoice_data,datum,hinbuchung):
     global betreff
     """Sendet die Rechnungsdaten an einen Server."""
 
-    rechnungstyp = choose_rechnungstype(
+    rechnungstyp = choose_between_two_options(
         "Rechnungstyp auswählen",
         "Amazon Betriebsbedarf",
         "Amazon Bürobedarf")
@@ -305,7 +276,6 @@ def main(pdf_path):
         root.destroy()
     except ValueError as e:
         messagebox.showinfo("Error", f"Fehler: {str(e)}")
-        sys.exit(f"Fehler: {str(e)}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
