@@ -205,7 +205,7 @@ def post_invoice_data(invoice_data,datum,hinbuchung):
         if(rechnungstyp == "Amazon Betriebsbedarf"):
             konto1 = "4980"
         else:
-            konto1 = "4980"
+            konto1 = "4930"
         konto2 = "90000"
     else:
         konto1 = "90000"
