@@ -66,22 +66,28 @@ def moveToServer(pdf_path, remote_path):
     """Lädt PDF-Datei auf den Server."""
     with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
-
 def choose_remote_path():
     """Lässt den Benutzer den Remotepfad auswählen."""
+    chosen_path = tk.StringVar()  # Neue StringVar Variable
+
+    def set_path(path):
+        """Setzt den Wert der chosen_path-Variable."""
+        chosen_path.set(path)
+        path_dialog.destroy()
+
     path_dialog = tk.Toplevel()
     path_dialog.title("Remotepfad auswählen")
 
     path_1_button = tk.Button(
         path_dialog,
         text=REMOTE_PATHS['path_1'],
-        command=lambda: path_dialog.destroy(REMOTE_PATHS['path_1']))
+        command=lambda: set_path(REMOTE_PATHS['path_1']))
     path_1_button.pack(pady=(0, 3))
 
     path_2_button = tk.Button(
         path_dialog,
         text=REMOTE_PATHS['path_2'],
-        command=lambda: path_dialog.destroy(REMOTE_PATHS['path_2']))
+        command=lambda: set_path(REMOTE_PATHS['path_2']))
     path_2_button.pack(pady=(0, 3))
 
     quit_button = tk.Button(
@@ -90,8 +96,13 @@ def choose_remote_path():
         command=path_dialog.destroy)
     quit_button.pack(pady=(0, 3))
 
-    chosen_path = path_dialog.wait_window()
-    return chosen_path
+    path_dialog.wait_window()
+
+    while not chosen_path.get():
+        path_dialog.wait_window()
+
+    return chosen_path.get()  # Rückgabe des Wertes der chosen_path Variable
+
 
 
 def show_info(titel, message):
