@@ -69,11 +69,29 @@ def moveToServer(pdf_path, remote_path):
 
 def choose_remote_path():
     """Lässt den Benutzer den Remotepfad auswählen."""
-    question_text = f'''Welcher Remotepfad soll verwendet werden?
-                       Yes -> {REMOTE_PATHS['path_1']}
-                       No -> {REMOTE_PATHS['path_2']}'''
-    result = messagebox.askquestion("Pfad", question_text, type='yesno', default='yes')
-    return REMOTE_PATHS['path_1'] if result == 'yes' else REMOTE_PATHS['path_2']
+    path_dialog = tk.Toplevel()
+    path_dialog.title("Remotepfad auswählen")
+
+    path_1_button = tk.Button(
+        path_dialog,
+        text=REMOTE_PATHS['path_1'],
+        command=lambda: path_dialog.destroy(REMOTE_PATHS['path_1']))
+    path_1_button.pack(pady=(0, 3))
+
+    path_2_button = tk.Button(
+        path_dialog,
+        text=REMOTE_PATHS['path_2'],
+        command=lambda: path_dialog.destroy(REMOTE_PATHS['path_2']))
+    path_2_button.pack(pady=(0, 3))
+
+    quit_button = tk.Button(
+        path_dialog,
+        text="Beenden",
+        command=path_dialog.destroy)
+    quit_button.pack(pady=(0, 3))
+
+    chosen_path = path_dialog.wait_window()
+    return chosen_path
 
 
 def show_info(titel, message):
@@ -123,11 +141,9 @@ def rename_file(pdf_path,invoice_data):
 
 
 def move_file():
-    move_file = messagebox.askyesno("Verschieben?", f"Möchten Sie die Datei {new_file_name} auf den Server verschieben?")
-    if move_file:
-        remote_path = choose_remote_path()
-        moveToServer(new_file_name, remote_path + new_file_name)
-        messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
+    remote_path = choose_remote_path()
+    moveToServer(new_file_name, remote_path + new_file_name)
+    messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
 def choose_action(pdf_path, invoice_data):
     """Lässt den Benutzer die gewünschte Aktion auswählen."""
@@ -179,6 +195,7 @@ def main(pdf_path):
         invoice_data = extract_invoice_data(text)
         invoice_data['date'] = parse_date(invoice_data['date'])
         invoice_data['text'] = text
+        new_file_name = pdf_path
 
         choose_action(pdf_path, invoice_data)
 
