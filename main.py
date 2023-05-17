@@ -3,13 +3,11 @@ import sys
 import re
 import argparse
 from datetime import datetime
-
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import dateparser
 from contextlib import contextmanager
 import PyPDF2
-
 import pysftp
 
 
@@ -26,7 +24,7 @@ REMOTE_PATHS = {
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
 REMOTE_PASSWORD = "?"
-
+new_file_name = None
 
 # Functions
 def extract_text_from_pdf(pdf_path):
@@ -110,19 +108,67 @@ def show_invoice_data(invoice_data):
 {invoice_data['text']}'''
     show_info("Rechnungsdaten",message)
 
-def rename_and_move_file(pdf_path, new_file_name):
+
+def rename_file(pdf_path,invoice_data):
     """Benennt die Datei um und verschiebt sie."""
+    global new_file_name
+
+
+    invoice_date = invoice_data['date'].strftime('%Y_%m_%d')
+    invoice_number = invoice_data['invoice_number']
+
+    new_file_name = simpledialog.askstring(
+        title="Dateiname",
+        prompt="Neuen Namen anpassen.\t\t\t",
+        initialvalue=f"{invoice_date}_{invoice_number}.pdf")
     os.rename(pdf_path, new_file_name)
 
 
+def move_file():
     move_file = messagebox.askyesno("Verschieben?", f"Möchten Sie die Datei {new_file_name} auf den Server verschieben?")
     if move_file:
         remote_path = choose_remote_path()
         moveToServer(new_file_name, remote_path + new_file_name)
         messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
+def choose_action(pdf_path, invoice_data):
+    """Lässt den Benutzer die gewünschte Aktion auswählen."""
+    global new_file_name
+    action_dialog = tk.Toplevel()
+    action_dialog.title("Aktion auswählen")
+
+    show_invoice_data_button = tk.Button(
+        action_dialog,
+        text="Rechnungsdaten anzeigen",
+        command=lambda: show_invoice_data(invoice_data))
+    show_invoice_data_button.pack(pady=(0, 3))
+
+    rename_file_button = tk.Button(
+        action_dialog,
+        text="Datei umbenennen",
+        command=lambda: rename_file(pdf_path,invoice_data))
+    rename_file_button.pack(pady=(0, 3))
+
+
+    move_file_button = tk.Button(
+        action_dialog,
+        text="Datei hochladen",
+        command=lambda: move_file())
+    move_file_button.pack(pady=(0, 3))
+
+    quit_button = tk.Button(
+        action_dialog,
+        text="Beenden",
+        command=action_dialog.destroy)
+    quit_button.pack(pady=(0, 3))
+
+    action_dialog.wait_window()
+
+
+
 def main(pdf_path):
     """Hauptfunktion des Programms."""
+    global new_file_name
     if not pdf_path:
         sys.exit("Es wurde keine PDF-Datei ausgewählt.")
 
@@ -130,22 +176,13 @@ def main(pdf_path):
         root = tk.Tk()
         root.withdraw()
 
+
         text = extract_text_from_pdf(pdf_path)
         invoice_data = extract_invoice_data(text)
         invoice_data['date'] = parse_date(invoice_data['date'])
         invoice_data['text'] = text
-        show_invoice_data(invoice_data)
-        invoice_date = invoice_data['date'].strftime('%Y_%m_%d')
-        invoice_number = invoice_data['invoice_number']
-        new_file_name = f"{invoice_date}_{invoice_number}.pdf"
-        rename_file = messagebox.askyesno("Umbenennen?", f"Möchten Sie die Datei {pdf_path} umbenennen?")
 
-        if rename_file:
-            new_file_name = simpledialog.askstring(
-                title="Dateiname",
-                prompt="Neuen Namen anpassen.\t\t\t",
-                initialvalue=new_file_name)
-            rename_and_move_file(pdf_path, new_file_name)
+        choose_action(pdf_path, invoice_data)
 
         root.destroy()
     except ValueError as e:
