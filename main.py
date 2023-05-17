@@ -5,6 +5,7 @@ import argparse
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import dateparser
+from datetime import date
 from contextlib import contextmanager
 import PyPDF2
 import pysftp
@@ -23,8 +24,9 @@ REMOTE_PATHS = {
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
 REMOTE_PASSWORD = "?"
-REMOTE_HTTP_URL = 'http://VMTATEX:3000'
+REMOTE_HTTP_URL = 'http://VMTATEX:3000/json'
 new_file_name = None
+betreff = ""
 
 # Functions
 def extract_text_from_pdf(pdf_path):
@@ -137,6 +139,13 @@ def show_invoice_data(invoice_data):
     show_info("Rechnungsdaten",message)
 
 
+def set_betreff():
+    global betreff
+    betreff = simpledialog.askstring(
+        title="Betreff",
+        prompt="Betreff eingeben.\t\t\t",
+        initialvalue=f"{betreff}")
+
 def rename_file(pdf_path,invoice_data):
     """Benennt die Datei um und verschiebt sie."""
     global new_file_name
@@ -148,7 +157,7 @@ def rename_file(pdf_path,invoice_data):
     new_file_name = simpledialog.askstring(
         title="Dateiname",
         prompt="Neuen Namen anpassen.\t\t\t",
-        initialvalue=f"{invoice_date}_{invoice_number}.pdf")
+        initialvalue=f"{invoice_date}_{betreff}_{invoice_number}.pdf")
     os.rename(pdf_path, new_file_name)
     messagebox.showinfo("Erfolgreich", f"Erfolgreich zu {invoice_date}_{invoice_number}.pdf umbenannt")
 
@@ -158,9 +167,17 @@ def move_file():
     moveToServer(new_file_name, remote_path + new_file_name)
     messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
-def post_invoice_data(invoice_data):
+def post_invoice_data(invoice_data,datum,rechnungstyp,konto1,konto2):
+    global betreff
     """Sendet die Rechnungsdaten an einen Server."""
-    response = httpx.post(REMOTE_HTTP_URL, json=invoice_data)
+    data_to_post ={
+        "date": datum.strftime('%d.%m.%Y'),
+        "rechnungstext": rechnungstyp + f" RN {invoice_data['invoice_number']} {betreff}",
+        "betrag": invoice_data['amount'],
+        "konto1": konto1,
+        "konto2": konto2}
+
+    response = httpx.post(REMOTE_HTTP_URL, json=data_to_post)
 
     if response.status_code != 201:
         raise Exception("Failed to post invoice data: " + response.text)
@@ -178,6 +195,14 @@ def choose_action(pdf_path, invoice_data):
         command=lambda: show_invoice_data(invoice_data))
     show_invoice_data_button.pack(pady=(0, 3))
 
+
+
+    rename_file_button = tk.Button(
+        action_dialog,
+        text="Betreff setzen",
+        command=lambda: set_betreff())
+    rename_file_button.pack(pady=(0, 3))
+
     rename_file_button = tk.Button(
         action_dialog,
         text="Datei umbenennen",
@@ -194,8 +219,15 @@ def choose_action(pdf_path, invoice_data):
 
     post_data_button = tk.Button(
         action_dialog,
-        text="Rechnungsdaten senden",
-        command=lambda: post_invoice_data(invoice_data))
+        text="Rechnungsdaten senden - Hinbuchung",
+        command=lambda: post_invoice_data(invoice_data, invoice_data['date'], "Amazon Betriebsbedarf", "4980", "90000"))
+    post_data_button.pack(pady=(0, 3))
+
+
+    post_data_button = tk.Button(
+        action_dialog,
+        text="Rechnungsdaten senden - Rückbuchung",
+        command=lambda: post_invoice_data(invoice_data, date.today(), "Amazon Betriebsbedarf", "90000", "1200"))
     post_data_button.pack(pady=(0, 3))
 
     quit_button = tk.Button(
