@@ -17,18 +17,18 @@ INVOICE_PATTERNS = {
     'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.)\s*([A-Za-z0-9\-_]+)',
     'amount': r'(?:Zahlbetrag|Gesamtbetrag|Total|Rechnungsbetrag)\s*([\d,.]+)\s*(?:€|EUR)?',
 }
+
 REMOTE_PATHS = {
     'path_1': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/2_Rechnungen_gebucht/',
     'path_2': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/3_Rechnungen_abgeschloßen/'
 }
+
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
 REMOTE_PASSWORD = "?"
 REMOTE_HTTP_URL = 'http://VMTATEX:3000/json'
-new_file_name = None
-betreff = ""
 
-# Functions
+
 def extract_text_from_pdf(pdf_path):
     """Extrahiert den Text aus einer PDF-Datei."""
     with open(pdf_path, 'rb') as pdf_file:
@@ -52,7 +52,7 @@ def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
     try:
         parsed_date = dateparser.parse(date_str)
-    except (ValueError):
+    except ValueError:
         raise ValueError("Rechnungsdatum kann nicht geparst werden.")
     return parsed_date.date()
 
@@ -65,15 +65,15 @@ def sftp_connection(server, username, password):
     with pysftp.Connection(server, username=username, password=password, cnopts=cnopts) as sftp:
         yield sftp
 
-def moveToServer(pdf_path, remote_path):
+
+def move_to_server(pdf_path, remote_path):
     """Lädt PDF-Datei auf den Server."""
     with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
 
 
-
 def choose_between_two_options(text, option1, option2):
-    chosen_option = tk.StringVar()  # Neue StringVar Variable
+    chosen_option = tk.StringVar()
 
     def set_option(option):
         chosen_option.set(option)
@@ -99,7 +99,8 @@ def choose_between_two_options(text, option1, option2):
     while not chosen_option.get():
         path_dialog.wait_window()
 
-    return chosen_option.get()  # Rückgabe des Wertes der chosen_type Variable
+    return chosen_option.get()
+
 
 def show_info(titel, message):
     """Erstellen einer benutzerdefinierten Dialogbox"""
@@ -107,9 +108,6 @@ def show_info(titel, message):
         custom_dialog.destroy()
     custom_dialog = tk.Toplevel()
     custom_dialog.title(titel)
-
-
-    # Setzen Sie die Größe des Fensters
     custom_dialog.geometry("300x200")
 
     text_widget = tk.Text(custom_dialog, wrap=tk.WORD, padx=3, pady=3)
@@ -122,49 +120,48 @@ def show_info(titel, message):
 
     custom_dialog.wait_window()
 
+
 def show_invoice_data(invoice_data):
     """Zeigt die extrahierten Rechnungsdaten an."""
     invoice_date_german = invoice_data['date'].strftime('%d.%m.%Y')
-    message = f'''{invoice_date_german}\n
+    message = f'''
+{invoice_data['new_file_name']}\n
+{invoice_date_german}\n
 {invoice_data['invoice_number']}\n
 {invoice_data['amount']}\n\n\n
 {invoice_data['text']}'''
-    show_info("Rechnungsdaten",message)
+    show_info("Rechnungsdaten", message)
 
 
-def set_betreff():
-    global betreff
-    betreff = simpledialog.askstring(
+def set_subject(invoice_data):
+    invoice_data['subject'] = simpledialog.askstring(
         title="Betreff",
         prompt="Betreff eingeben.\t\t\t",
-        initialvalue=f"{betreff}")
+        initialvalue=f"{invoice_data['subject']}")
 
-def rename_file(pdf_path,invoice_data):
+def rename_file(pdf_path, invoice_data):
     """Benennt die Datei um und verschiebt sie."""
-    global new_file_name
-
-
     invoice_date = invoice_data['date'].strftime('%Y_%m_%d')
     invoice_number = invoice_data['invoice_number']
 
-    new_file_name = simpledialog.askstring(
+    invoice_data['new_file_name'] = simpledialog.askstring(
         title="Dateiname",
         prompt="Neuen Namen anpassen.\t\t\t",
-        initialvalue=f"{invoice_date}_{betreff}_{invoice_number}.pdf")
-    os.rename(pdf_path, new_file_name)
+        initialvalue=f"{invoice_date}_{invoice_data['subject']}_{invoice_number}.pdf")
+    os.rename(pdf_path, invoice_data['new_file_name'])
     messagebox.showinfo("Erfolgreich", f"Erfolgreich zu {invoice_date}_{invoice_number}.pdf umbenannt")
 
 
-def move_file():
-    remote_path = choose_between_two_options("Remotepfad auswählen",
-                                             REMOTE_PATHS['path_1'],
-                                             REMOTE_PATHS['path_2'])
+def move_file(invoice_data):
+    remote_path = choose_between_two_options(
+        "Remotepfad auswählen",
+        REMOTE_PATHS['path_1'],
+        REMOTE_PATHS['path_2'])
 
-    moveToServer(new_file_name, remote_path + new_file_name)
+    move_to_server(invoice_data['new_file_name'], remote_path + invoice_data['new_file_name'])
     messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
-def post_invoice_data(invoice_data,datum,hinbuchung):
-    global betreff
+def post_invoice_data(invoice_data, datum, hinbuchung):
     """Sendet die Rechnungsdaten an einen Server."""
 
     rechnungstyp = choose_between_two_options(
@@ -185,7 +182,7 @@ def post_invoice_data(invoice_data,datum,hinbuchung):
 
     data_to_post ={
         "date": datum.strftime('%d.%m.%Y'),
-        "rechnungstext": rechnungstyp + f" RN {invoice_data['invoice_number']} {betreff}",
+        "rechnungstext": rechnungstyp + f" RN {invoice_data['invoice_number']} {invoice_data['subject']}",
         "betrag": invoice_data['amount'],
         "konto1": konto1,
         "konto2": konto2
@@ -197,9 +194,9 @@ def post_invoice_data(invoice_data,datum,hinbuchung):
         raise Exception("Failed to post invoice data: " + response.text)
 
 
+
 def choose_action(pdf_path, invoice_data):
     """Lässt den Benutzer die gewünschte Aktion auswählen."""
-    global new_file_name
     action_dialog = tk.Toplevel()
     action_dialog.title("Aktion auswählen")
 
@@ -209,34 +206,29 @@ def choose_action(pdf_path, invoice_data):
         command=lambda: show_invoice_data(invoice_data))
     show_invoice_data_button.pack(pady=(0, 3))
 
-
-
-    rename_file_button = tk.Button(
+    set_subject_button = tk.Button(
         action_dialog,
         text="Betreff setzen",
-        command=lambda: set_betreff())
-    rename_file_button.pack(pady=(0, 3))
+        command=lambda: set_subject(invoice_data))
+    set_subject_button.pack(pady=(0, 3))
 
     rename_file_button = tk.Button(
         action_dialog,
         text="Datei umbenennen",
-        command=lambda: rename_file(pdf_path,invoice_data))
+        command=lambda: rename_file(pdf_path, invoice_data))
     rename_file_button.pack(pady=(0, 3))
-
 
     move_file_button = tk.Button(
         action_dialog,
         text="Datei hochladen",
-        command=lambda: move_file())
+        command=lambda: move_file(invoice_data))
     move_file_button.pack(pady=(0, 3))
-
 
     post_data_button = tk.Button(
         action_dialog,
         text="Rechnungsdaten senden - Hinbuchung",
         command=lambda: post_invoice_data(invoice_data, invoice_data['date'], 1))
     post_data_button.pack(pady=(0, 3))
-
 
     post_data_button = tk.Button(
         action_dialog,
@@ -253,23 +245,20 @@ def choose_action(pdf_path, invoice_data):
     action_dialog.wait_window()
 
 
-
 def main(pdf_path):
     """Hauptfunktion des Programms."""
-    global new_file_name
     if not pdf_path:
         sys.exit("Es wurde keine PDF-Datei ausgewählt.")
 
     try:
         root = tk.Tk()
         root.withdraw()
-
-
         text = extract_text_from_pdf(pdf_path)
         invoice_data = extract_invoice_data(text)
         invoice_data['date'] = parse_date(invoice_data['date'])
         invoice_data['text'] = text
-        new_file_name = pdf_path
+        invoice_data['new_file_name'] = pdf_path
+        invoice_data['subject'] = ""
 
         choose_action(pdf_path, invoice_data)
 
