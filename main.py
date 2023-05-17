@@ -8,7 +8,7 @@ import dateparser
 from contextlib import contextmanager
 import PyPDF2
 import pysftp
-
+import httpx
 
 # Constants
 INVOICE_PATTERNS = {
@@ -23,6 +23,7 @@ REMOTE_PATHS = {
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
 REMOTE_PASSWORD = "?"
+REMOTE_HTTP_URL = 'http://VMTATEX:3000'
 new_file_name = None
 
 # Functions
@@ -149,12 +150,21 @@ def rename_file(pdf_path,invoice_data):
         prompt="Neuen Namen anpassen.\t\t\t",
         initialvalue=f"{invoice_date}_{invoice_number}.pdf")
     os.rename(pdf_path, new_file_name)
+    messagebox.showinfo("Erfolgreich", f"Erfolgreich zu {invoice_date}_{invoice_number}.pdf umbenannt")
 
 
 def move_file():
     remote_path = choose_remote_path()
     moveToServer(new_file_name, remote_path + new_file_name)
     messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
+
+def post_invoice_data(invoice_data):
+    """Sendet die Rechnungsdaten an einen Server."""
+    response = httpx.post(REMOTE_HTTP_URL, json=invoice_data)
+
+    if response.status_code != 201:
+        raise Exception("Failed to post invoice data: " + response.text)
+
 
 def choose_action(pdf_path, invoice_data):
     """Lässt den Benutzer die gewünschte Aktion auswählen."""
@@ -180,6 +190,13 @@ def choose_action(pdf_path, invoice_data):
         text="Datei hochladen",
         command=lambda: move_file())
     move_file_button.pack(pady=(0, 3))
+
+
+    post_data_button = tk.Button(
+        action_dialog,
+        text="Rechnungsdaten senden",
+        command=lambda: post_invoice_data(invoice_data))
+    post_data_button.pack(pady=(0, 3))
 
     quit_button = tk.Button(
         action_dialog,
@@ -212,6 +229,7 @@ def main(pdf_path):
 
         root.destroy()
     except ValueError as e:
+        messagebox.showinfo("Error", f"Fehler: {str(e)}")
         sys.exit(f"Fehler: {str(e)}")
 
 if __name__ == '__main__':
