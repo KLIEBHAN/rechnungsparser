@@ -2,7 +2,6 @@ import os
 import sys
 import re
 import argparse
-from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import dateparser
@@ -48,7 +47,6 @@ def extract_invoice_data(text):
 
 def parse_date(date_str):
     """Analysiert das Datum aus einer Zeichenkette."""
-    print(date_str)
     try:
         parsed_date = dateparser.parse(date_str)
     except (ValueError):
