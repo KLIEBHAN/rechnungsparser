@@ -1,18 +1,20 @@
 import os
 import re
+import tkinter as tk
+from contextlib import contextmanager
+from tkinter import messagebox, simpledialog
 
+import PyPDF2
+import dateparser
 import httpx
 import pysftp
-import PyPDF2
-import tkinter as tk
-from tkinter import messagebox, simpledialog
-import dateparser
-from contextlib import contextmanager
 
 # Constants
 INVOICE_PATTERNS = {
-    'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|(\d{1,2}[.]?\s+\w+\s+\d{2,4}))',
-    'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.)\s*([A-Za-z0-9\-_]+)',
+    'date': r'(?:Rechnungsdatum|Datum)\s*(?:\/Lieferdatum)?\s*((\d{1,2}[-./]\d{1,2}[-./]\d{2,4})|'
+            r'(\d{1,2}[.]?\s+\w+\s+\d{2,4}))',
+    'invoice_number': r'(?:Rechnungsnummer|Rechnungs-Nr\.|Fakturanummer|Rechnungsnr\.|Invoice No\.)'
+                      r'\s*([A-Za-z0-9\-_]+)',
     'amount': r'(?:Zahlbetrag|Gesamtbetrag|Total|Rechnungsbetrag)\s*([\d,.]+)\s*(?:€|EUR)?',
 }
 
@@ -21,11 +23,11 @@ REMOTE_PATHS = {
     'path_2': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/3_Rechnungen_abgeschloßen/'
 }
 
-
 REMOTE_SERVER = 'VMTATEX'
 REMOTE_USERNAME = "fabi"
 REMOTE_PASSWORD = "?"
 REMOTE_HTTP_URL = 'http://VMTATEX:3000/json'
+
 
 # Hilfsfunktion zum Erstellen eines Buttons
 def create_button(dialog, text, command):
@@ -165,7 +167,6 @@ def rename_file(invoice_data):
 
 # Funktion zum Verschieben einer Datei
 def move_file(invoice_data):
-
     print(invoice_data['new_file_name'])
     remote_path = choose_between_two_options(
         "Remotepfad auswählen",
