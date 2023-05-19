@@ -8,9 +8,9 @@ import dateparser
 import httpx
 import pysftp
 import configparser
+
 config = configparser.ConfigParser()
 config.read('C:\\Users\\fabia\\git\\rechnungsparser\\rechnungsparser.cfg')
-
 
 # Constants
 INVOICE_PATTERNS = {
@@ -25,7 +25,6 @@ REMOTE_PATHS = {
     'path_1': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/2_Rechnungen_gebucht/',
     'path_2': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/3_Rechnungen_abgeschloßen/'
 }
-
 
 REMOTE_SERVER = config['DEFAULT']['REMOTE_SERVER']
 REMOTE_USERNAME = config['DEFAULT']['REMOTE_USERNAME']
@@ -194,6 +193,7 @@ def assign_kontos(rechnungstyp, hinbuchung):
 
     return konto1, konto2
 
+
 def create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp):
     """Erstellt die Daten, die an den Server gesendet werden sollen."""
     data_to_post = {
@@ -206,6 +206,7 @@ def create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp):
 
     return data_to_post
 
+
 def post_data(data_to_post):
     """Sendet die Daten an den Server."""
     try:
@@ -214,6 +215,7 @@ def post_data(data_to_post):
             messagebox.showinfo("Error", f"Failed to post invoice data: {response.text}")
     except Exception as e:
         messagebox.showinfo("Error", f"Unerwarteter Fehler: {str(e)}")
+
 
 def post_invoice_data(invoice_data, datum, hinbuchung):
     """Sendet die Rechnungsdaten an einen Server."""
@@ -225,5 +227,3 @@ def post_invoice_data(invoice_data, datum, hinbuchung):
     konto1, konto2 = assign_kontos(rechnungstyp, hinbuchung)
     data_to_post = create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp)
     post_data(data_to_post)
-
-
