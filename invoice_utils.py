@@ -41,7 +41,7 @@ def create_button(dialog, text, command):
 
 
 # Funktion zur Extraktion von Text aus einer PDF-Datei
-def extract_text_from_pdf(pdf_path):
+def extract_text_from_pdf(pdf_path: str) -> str:
     """Extrahiert den Text aus einer PDF-Datei."""
     with open(pdf_path, 'rb') as pdf_file:
         pdf_reader = PyPDF2.PdfReader(pdf_file)
