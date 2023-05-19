@@ -171,7 +171,6 @@ def rename_file(invoice_data):
 
 # Funktion zum Verschieben einer Datei
 def move_file(invoice_data):
-    print(invoice_data['new_file_name'])
     remote_path = choose_between_two_options(
         "Remotepfad auswählen",
         REMOTE_PATHS['path_1'],
@@ -181,15 +180,8 @@ def move_file(invoice_data):
     messagebox.showinfo("Erfolgreich", "Erfolgreich hochgeladen")
 
 
-# Funktion zum Senden von Rechnungsdaten an einen Server
-def post_invoice_data(invoice_data, datum, hinbuchung):
-    """Sendet die Rechnungsdaten an einen Server."""
-
-    rechnungstyp = choose_between_two_options(
-        "Rechnungstyp auswählen",
-        "Amazon Betriebsbedarf",
-        "Amazon Bürobedarf")
-
+def assign_kontos(rechnungstyp, hinbuchung):
+    """Weist die Konten basierend auf dem Rechnungstyp und der Buchung zu."""
     if hinbuchung:
         if rechnungstyp == "Amazon Betriebsbedarf":
             konto1 = "4980"
@@ -200,18 +192,38 @@ def post_invoice_data(invoice_data, datum, hinbuchung):
         konto1 = "90000"
         konto2 = "1200"
 
+    return konto1, konto2
+
+def create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp):
+    """Erstellt die Daten, die an den Server gesendet werden sollen."""
     data_to_post = {
         "date": datum.strftime('%d.%m.%Y'),
-        "rechnungstext": rechnungstyp + f" RN {invoice_data['invoice_number']} {invoice_data['subject']}",
+        "rechnungstext": f"{rechnungstyp} RN {invoice_data['invoice_number']} {invoice_data['subject']}",
         "betrag": invoice_data['amount'],
         "konto1": konto1,
         "konto2": konto2
     }
 
+    return data_to_post
+
+def post_data(data_to_post):
+    """Sendet die Daten an den Server."""
     try:
         response = httpx.post(REMOTE_HTTP_URL, json=data_to_post)
         if response.status_code != 201:
             messagebox.showinfo("Error", f"Failed to post invoice data: {response.text}")
     except Exception as e:
         messagebox.showinfo("Error", f"Unerwarteter Fehler: {str(e)}")
+
+def post_invoice_data(invoice_data, datum, hinbuchung):
+    """Sendet die Rechnungsdaten an einen Server."""
+    rechnungstyp = choose_between_two_options(
+        "Rechnungstyp auswählen",
+        "Amazon Betriebsbedarf",
+        "Amazon Bürobedarf"
+    )
+    konto1, konto2 = assign_kontos(rechnungstyp, hinbuchung)
+    data_to_post = create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp)
+    post_data(data_to_post)
+
 
