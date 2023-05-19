@@ -151,8 +151,9 @@ def set_subject(invoice_data):
 
 
 # Funktion zum Umbenennen einer Datei
-def rename_file(pdf_path, invoice_data):
+def rename_file(invoice_data):
     """Benennt die Datei um und verschiebt sie."""
+    pdf_path = invoice_data['new_file_name']
     invoice_date = invoice_data['date'].strftime('%Y_%m_%d')
     invoice_number = invoice_data['invoice_number']
 
@@ -220,7 +221,7 @@ def choose_action(pdf_path, invoice_data):
 
         create_button(action_dialog, "Rechnungsdaten anzeigen", lambda: show_invoice_data(invoice_data))
         create_button(action_dialog, "Betreff setzen", lambda: set_subject(invoice_data))
-        create_button(action_dialog, "Datei umbenennen", lambda: rename_file(pdf_path, invoice_data))
+        create_button(action_dialog, "Datei umbenennen", lambda: rename_file(invoice_data))
         create_button(action_dialog, "Datei hochladen", lambda: move_file(invoice_data))
         create_button(action_dialog, "Rechnungsdaten senden - Hinbuchung",
                       lambda: post_invoice_data(invoice_data, invoice_data['date'], 1))
