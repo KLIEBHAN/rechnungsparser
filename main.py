@@ -162,7 +162,7 @@ def rename_file(invoice_data):
         prompt="Neuen Namen anpassen.\t\t\t",
         initialvalue=f"{invoice_date}_{invoice_data['subject']}_{invoice_number}.pdf")
     os.rename(pdf_path, invoice_data['new_file_name'])
-    messagebox.showinfo("Erfolgreich", f"Erfolgreich zu {invoice_date}_{invoice_number}.pdf umbenannt")
+    messagebox.showinfo("Erfolgreich", f"Erfolgreich zu {invoice_data['new_file_name']} umbenannt")
 
 
 # Funktion zum Verschieben einer Datei
