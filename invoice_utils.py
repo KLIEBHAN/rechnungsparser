@@ -9,7 +9,7 @@ import httpx
 import pysftp
 import configparser
 config = configparser.ConfigParser()
-config.read('config.cfg')
+config.read('C:\\Users\\fabia\\git\\rechnungsparser\\rechnungsparser.cfg')
 
 
 # Constants
