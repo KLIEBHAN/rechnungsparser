@@ -3,11 +3,14 @@ import re
 import tkinter as tk
 from contextlib import contextmanager
 from tkinter import messagebox, simpledialog
-
 import PyPDF2
 import dateparser
 import httpx
 import pysftp
+import configparser
+config = configparser.ConfigParser()
+config.read('config.cfg')
+
 
 # Constants
 INVOICE_PATTERNS = {
@@ -23,10 +26,11 @@ REMOTE_PATHS = {
     'path_2': '/C:/Daten/TATEX/Buchhaltung/2023/Buchungen/Rechnungen/3_Rechnungen_abgeschloßen/'
 }
 
-REMOTE_SERVER = 'VMTATEX'
-REMOTE_USERNAME = "fabi"
-REMOTE_PASSWORD = "?"
-REMOTE_HTTP_URL = 'http://VMTATEX:3000/json'
+
+REMOTE_SERVER = config['DEFAULT']['REMOTE_SERVER']
+REMOTE_USERNAME = config['DEFAULT']['REMOTE_USERNAME']
+REMOTE_PASSWORD = config['DEFAULT']['REMOTE_PASSWORD']
+REMOTE_HTTP_URL = config['DEFAULT']['REMOTE_HTTP_URL']
 
 
 # Hilfsfunktion zum Erstellen eines Buttons
