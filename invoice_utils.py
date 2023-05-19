@@ -206,8 +206,8 @@ def post_invoice_data(invoice_data, datum, hinbuchung):
 
     try:
         response = httpx.post(REMOTE_HTTP_URL, json=data_to_post)
+        if response.status_code != 201:
+            messagebox.showinfo("Error", f"Failed to post invoice data: {response.text}")
     except Exception as e:
         messagebox.showinfo("Error", f"Unerwarteter Fehler: {str(e)}")
 
-    if response.status_code != 201:
-        messagebox.showinfo("Error", f"Failed to post invoice data: {response.text}")
