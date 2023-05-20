@@ -53,9 +53,8 @@ def extract_invoice_data(text):
     """Extrahiert Rechnungsdaten aus dem Text."""
     invoice_data = {}
     for key, pattern in INVOICE_PATTERNS.items():
-        match = re.search(pattern, text)
-        if match:
-            invoice_data[key] = match.group(1)
+        if match := re.search(pattern, text):
+            invoice_data[key] = match[1]
         else:
             raise ValueError(f"{key} nicht gefunden.")
     return invoice_data
@@ -182,10 +181,7 @@ def move_file(invoice_data):
 def assign_kontos(rechnungstyp, hinbuchung):
     """Weist die Konten basierend auf dem Rechnungstyp und der Buchung zu."""
     if hinbuchung:
-        if rechnungstyp == "Amazon Betriebsbedarf":
-            konto1 = "4980"
-        else:
-            konto1 = "4930"
+        konto1 = "4980" if rechnungstyp == "Amazon Betriebsbedarf" else "4930"
         konto2 = "90000"
     else:
         konto1 = "90000"
@@ -196,15 +192,13 @@ def assign_kontos(rechnungstyp, hinbuchung):
 
 def create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp):
     """Erstellt die Daten, die an den Server gesendet werden sollen."""
-    data_to_post = {
+    return {
         "date": datum.strftime('%d.%m.%Y'),
         "rechnungstext": f"{rechnungstyp} RN {invoice_data['invoice_number']} {invoice_data['subject']}",
         "betrag": invoice_data['amount'],
         "konto1": konto1,
-        "konto2": konto2
+        "konto2": konto2,
     }
-
-    return data_to_post
 
 
 def post_data(data_to_post):
