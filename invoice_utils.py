@@ -32,62 +32,63 @@ REMOTE_PASSWORD = config['DEFAULT']['REMOTE_PASSWORD']
 REMOTE_HTTP_URL = config['DEFAULT']['REMOTE_HTTP_URL']
 
 
-# Hilfsfunktion zum Erstellen eines Buttons
+# Helper function to create a button
 def create_button(dialog, text, command):
-    """Erstellt einen Button."""
+    """Creates a button."""
     button = tk.Button(dialog, text=text, command=command)
     button.pack(pady=(0, 3))
 
 
-# Funktion zur Extraktion von Text aus einer PDF-Datei
+# Function to extract text from a PDF file
 def extract_text_from_pdf(pdf_path: str) -> str:
-    """Extrahiert den Text aus einer PDF-Datei."""
+    """Extracts text from a PDF file."""
     with open(pdf_path, 'rb') as pdf_file:
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         text = ''.join([pdf_reader.pages[i].extract_text() for i in range(len(pdf_reader.pages))])
     return text
 
 
-# Funktion zur Extraktion von Rechnungsdaten aus Text
+# Function to extract invoice data from text
 def extract_invoice_data(text):
-    """Extrahiert Rechnungsdaten aus dem Text."""
+    """Extracts invoice data from text."""
     invoice_data = {}
     for key, pattern in INVOICE_PATTERNS.items():
         if match := re.search(pattern, text):
             invoice_data[key] = match[1]
         else:
-            raise ValueError(f"{key} nicht gefunden.")
+            raise ValueError(f"{key} not found.")
     return invoice_data
 
 
-# Funktion zum Parsen von Datumswerten aus einer Zeichenkette
 def parse_date(date_str):
-    """Analysiert das Datum aus einer Zeichenkette."""
+    """Parses a date value from a string."""
     try:
         parsed_date = dateparser.parse(date_str)
+        if parsed_date is None:
+            raise ValueError("Invalid date string: {}".format(date_str))
+        return parsed_date.date()
     except ValueError:
-        raise ValueError("Rechnungsdatum kann nicht geparst werden.")
-    return parsed_date.date()
+        raise ValueError("Invalid date string: {}".format(date_str))
 
 
-# Kontextmanager zur Verwaltung von SFTP-Verbindungen
+# Context manager for managing SFTP connections
 @contextmanager
 def sftp_connection(server, username, password):
-    """Öffnet eine SFTP-Verbindung."""
+    """Opens an SFTP connection."""
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None
     with pysftp.Connection(server, username=username, password=password, cnopts=cnopts) as sftp:
         yield sftp
 
 
-# Funktion zum Verschieben einer Datei zum Server
+# Function to move a file to the server
 def move_to_server(pdf_path, remote_path):
-    """Lädt PDF-Datei auf den Server."""
+    """Uploads PDF file to the server."""
     with sftp_connection(REMOTE_SERVER, REMOTE_USERNAME, REMOTE_PASSWORD) as sftp:
         sftp.put(pdf_path, remote_path)
 
 
-# Funktion zur Auswahl zwischen zwei Optionen
+# Function to choose between two options
 def choose_between_two_options(text, option1, option2):
     chosen_option = tk.StringVar()
 
@@ -109,15 +110,15 @@ def choose_between_two_options(text, option1, option2):
     return chosen_option.get()
 
 
-# Funktion zum Anzeigen von Informationen
-def show_info(titel, message):
-    """Erstellen einer benutzerdefinierten Dialogbox"""
+# Function to show information
+def show_info(title, message):
+    """Creates a custom dialog box"""
 
     def close_dialog():
         custom_dialog.destroy()
 
     custom_dialog = tk.Toplevel()
-    custom_dialog.title(titel)
+    custom_dialog.title(title)
     custom_dialog.geometry("300x200")
 
     text_widget = tk.Text(custom_dialog, wrap=tk.WORD, padx=3, pady=3)
@@ -131,9 +132,9 @@ def show_info(titel, message):
     custom_dialog.wait_window()
 
 
-# Funktion zum Anzeigen von Rechnungsdaten
+# Function to show invoice data
 def show_invoice_data(invoice_data):
-    """Zeigt die extrahierten Rechnungsdaten an."""
+    """Displays the extracted invoice data."""
     invoice_date_german = invoice_data['date'].strftime('%d.%m.%Y')
     message = f'''
 {invoice_data['new_file_name']}\n
@@ -144,7 +145,7 @@ def show_invoice_data(invoice_data):
     show_info("Rechnungsdaten", message)
 
 
-# Funktion zum Setzen des Betreffs
+# Function to set the subject
 def set_subject(invoice_data):
     invoice_data['subject'] = simpledialog.askstring(
         title="Betreff",
@@ -152,9 +153,9 @@ def set_subject(invoice_data):
         initialvalue=f"{invoice_data['subject']}")
 
 
-# Funktion zum Umbenennen einer Datei
+# Function to rename a file
 def rename_file(invoice_data):
-    """Benennt die Datei um und verschiebt sie."""
+    """Renames the file and moves it."""
     pdf_path = invoice_data['new_file_name']
     invoice_date = invoice_data['date'].strftime('%Y_%m_%d')
     invoice_number = invoice_data['invoice_number']
@@ -167,7 +168,7 @@ def rename_file(invoice_data):
     messagebox.showinfo("Erfolgreich", f"Erfolgreich zu {invoice_data['new_file_name']} umbenannt")
 
 
-# Funktion zum Verschieben einer Datei
+# Function to move a file
 def move_file(invoice_data):
     remote_path = choose_between_two_options(
         "Remotepfad auswählen",
@@ -179,7 +180,7 @@ def move_file(invoice_data):
 
 
 def assign_kontos(rechnungstyp, hinbuchung):
-    """Weist die Konten basierend auf dem Rechnungstyp und der Buchung zu."""
+    """Assigns the accounts based on the invoice type and booking."""
     if hinbuchung:
         konto1 = "4980" if rechnungstyp == "Amazon Betriebsbedarf" else "4930"
         konto2 = "90000"
@@ -191,7 +192,7 @@ def assign_kontos(rechnungstyp, hinbuchung):
 
 
 def create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp):
-    """Erstellt die Daten, die an den Server gesendet werden sollen."""
+    """Creates the data to be sent to the server."""
     return {
         "date": datum.strftime('%d.%m.%Y'),
         "rechnungstext": f"{rechnungstyp} RN {invoice_data['invoice_number']} {invoice_data['subject']}",
@@ -202,7 +203,7 @@ def create_data_to_post(invoice_data, datum, konto1, konto2, rechnungstyp):
 
 
 def post_data(data_to_post):
-    """Sendet die Daten an den Server."""
+    """Sends the data to the server."""
     try:
         response = httpx.post(REMOTE_HTTP_URL, json=data_to_post)
         if response.status_code != 201:
@@ -212,7 +213,7 @@ def post_data(data_to_post):
 
 
 def post_invoice_data(invoice_data, datum, hinbuchung):
-    """Sendet die Rechnungsdaten an einen Server."""
+    """Sends the invoice data to a server."""
     rechnungstyp = choose_between_two_options(
         "Rechnungstyp auswählen",
         "Amazon Betriebsbedarf",
